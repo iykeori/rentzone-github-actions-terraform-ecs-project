@@ -110,7 +110,7 @@ jobs:
           echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME_VALUE" >> $GITHUB_ENV
 
       - name: Get Terraform output environment file name
-        if: env.TERRAFORM_ACTION == 'apply'
+        if: env.TERRAFORM_ACTION == 'destroy'
         working-directory: ./iac
         run: |
           ENVIRONMENT_FILE_NAME_VALUE=$(terraform output -raw environment_file_name | grep -Eo "^[^:]+" | tail -n 1)
