@@ -124,7 +124,11 @@ jobs:
           echo "ENV_FILE_BUCKET_NAME=$ENV_FILE_BUCKET_NAME_VALUE" >> $GITHUB_ENV
 
       - name: Print GITHUB_ENV contents
-        run: cat $GITHUB_ENV
+        run: cat $GITHUB_ENV  
+         
+      - name: Debug IMAGE_NAME
+        run: echo "IMAGE_NAME is ${{ env.IMAGE_NAME }}"
+
 
     outputs:
       terraform_action: ${{ env.TERRAFORM_ACTION }}
