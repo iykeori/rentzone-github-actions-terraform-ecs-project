@@ -50,7 +50,7 @@ jobs:
         if: env.TERRAFORM_ACTION == 'apply'
         working-directory: 
         run: |
-          IMAGE_NAME_VALUE=$(terraform output image_name | grep -oP '(?<=image_name = ")[^"]+')
+          IMAGE_NAME_VALUE=$(terraform output -json | jq -r '.image_name.value')
           echo "IMAGE_NAME=$IMAGE_NAME_VALUE" >> $GITHUB_ENV
 
       - name: Debug IMAGE_NAME
