@@ -108,6 +108,7 @@ variable "architecture" {
 variable "image_name" {
   description = "the docker image name"
   type        = string
+  default     = "rentzone-app"
 }
 
 variable "image_tag" {

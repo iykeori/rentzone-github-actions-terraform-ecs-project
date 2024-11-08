@@ -31,8 +31,8 @@ env_file_name        = "env-variables-file.env"
 
 # ecs variables
 architecture = "X86_64"
-image_name   = "rentzoneapp"
-image_tag    = "latest"
+# image_name   = "rentzoneapp"
+image_tag = "latest"
 
 # route-53 variables
 record_name = "www"
