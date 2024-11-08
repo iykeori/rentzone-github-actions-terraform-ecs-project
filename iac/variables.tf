@@ -3,7 +3,6 @@ variable "region" {
   description = "region to create resources"
   type        = string
 }
-
 variable "project_name" {
   description = "project name"
   type        = string
@@ -108,7 +107,6 @@ variable "architecture" {
 variable "image_name" {
   description = "the docker image name"
   type        = string
-  default     = "rentzone-app"
 }
 
 variable "image_tag" {
