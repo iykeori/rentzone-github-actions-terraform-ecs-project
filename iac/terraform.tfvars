@@ -31,7 +31,7 @@ env_file_name        = "env-variables-file.env"
 
 # ecs variables
 architecture = "ARM64"
-image_name   = "rzimage"
+image_name   = "rentzone-app"
 image_tag    = "latest"
 
 # route-53 variables
