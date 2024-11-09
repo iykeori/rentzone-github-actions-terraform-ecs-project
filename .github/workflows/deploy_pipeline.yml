@@ -50,16 +50,16 @@ jobs:
         working-directory: ./iac
         id: terraform_outputs
         run: |
-          echo "IMAGE_NAME=$(terraform output -raw image_name)" >> $GITHUB_ENV
-          echo "DOMAIN_NAME=$(terraform output -raw domain_name)" >> $GITHUB_ENV
-          echo "RDS_ENDPOINT=$(terraform output -raw rds_endpoint)" >> $GITHUB_ENV
-          echo "IMAGE_TAG=$(terraform output -raw image_tag)" >> $GITHUB_ENV
-          echo "PRIVATE_DATA_SUBNET_AZ1_ID=$(terraform output -raw private_data_subnet_az1_id)" >> $GITHUB_ENV
-          echo "RUNNER_SECURITY_GROUP_ID=$(terraform output -raw runner_security_group_id)" >> $GITHUB_ENV
-          echo "TASK_DEFINITION_NAME=$(terraform output -raw task_definition_name)" >> $GITHUB_ENV
-          echo "ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name)" >> $GITHUB_ENV
-          echo "ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name)" >> $GITHUB_ENV
-          echo "ENV_FILE_BUCKET_NAME=$(terraform output -raw env_file_bucket_name)" >> $GITHUB_ENV
+          echo "IMAGE_NAME=$(terraform output -raw image_name | tr -d '\n')" >> $GITHUB_ENV
+          echo "DOMAIN_NAME=$(terraform output -raw domain_name | tr -d '\n')" >> $GITHUB_ENV
+          echo "RDS_ENDPOINT=$(terraform output -raw rds_endpoint | tr -d '\n')" >> $GITHUB_ENV
+          echo "IMAGE_TAG=$(terraform output -raw image_tag | tr -d '\n')" >> $GITHUB_ENV
+          echo "PRIVATE_DATA_SUBNET_AZ1_ID=$(terraform output -raw private_data_subnet_az1_id | tr -d '\n')" >> $GITHUB_ENV
+          echo "RUNNER_SECURITY_GROUP_ID=$(terraform output -raw runner_security_group_id | tr -d '\n')" >> $GITHUB_ENV
+          echo "TASK_DEFINITION_NAME=$(terraform output -raw task_definition_name | tr -d '\n')" >> $GITHUB_ENV
+          echo "ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name | tr -d '\n')" >> $GITHUB_ENV
+          echo "ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name | tr -d '\n')" >> $GITHUB_ENV
+          echo "ENV_FILE_BUCKET_NAME=$(terraform output -raw env_file_bucket_name | tr -d '\n')" >> $GITHUB_ENV
 
       - name: Print GITHUB_ENV contents
         run: cat $GITHUB_ENV
