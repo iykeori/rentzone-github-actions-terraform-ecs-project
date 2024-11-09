@@ -30,8 +30,8 @@ env_file_bucket_name = "ik-rentzone-app-env-file-bucket"
 env_file_name        = "env-variables-file.env"
 
 # ecs variables
-architecture = "X86_64"
-image_name   = "rentzoneapp"
+architecture = "ARM64"
+image_name   = "rzimage"
 image_tag    = "latest"
 
 # route-53 variables
