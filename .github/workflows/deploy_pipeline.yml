@@ -142,9 +142,9 @@ jobs:
               {"Key": "Name", "Value": "ec2-github-runner"},
               {"Key": "GitHubRepository", "Value": "${{ github.repository }}"}
             ]
-  outputs:
-    label: ${{ steps.start-ec2-runner.outputs.label }}
-    ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
+    outputs:
+      label: ${{ steps.start-ec2-runner.outputs.label }}
+      ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
 
   # Build and push Docker image to ECR
   build_and_push_image:
