@@ -119,3 +119,7 @@ variable "record_name" {
   description = "sub domain name"
   type        = string
 }
+variable "zone_id" {
+  description = "Route 53 hosted zone ID (use this if multiple zones exist)"
+  type        = string
+}

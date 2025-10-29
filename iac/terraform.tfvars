@@ -18,7 +18,7 @@ secrets_manager_secret_name = "rentzone-app-dev-secrets"
 # rds variables
 multi_az_deployment          = "false"
 database_instance_identifier = "app-db2"
-database_instance_class      = "db.t3.micro"
+database_instance_class      = "db.t2.micro"
 publicly_accessible          = false
 
 # acm variables
@@ -30,9 +30,12 @@ env_file_bucket_name = "ik-rentzone-app-env-file-bucket"
 env_file_name        = "env-variables-file.env"
 
 # ecs variables
-architecture = "ARM64"
+#architecture = "ARM64"
+architecture = "X86_64"
 image_name   = "rentzone-app"
 image_tag    = "latest"
 
 # route-53 variables
 record_name = "www"
+zone_id     = "Z07179642CC36LKP274V"
+

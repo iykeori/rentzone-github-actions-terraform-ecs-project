@@ -4,6 +4,6 @@ terraform {
     bucket         = "iykeori-terraform-cicd-remote-state"
     key            = "rentzone-app/terraform.tfstate"
     region         = "us-east-1"
-    dynamodb_table = "terraform-cicd-state-lock"
+    dynamodb_table = "terraform-state-lock"
   }
 }
