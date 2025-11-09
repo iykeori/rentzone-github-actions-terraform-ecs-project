@@ -8,7 +8,7 @@ env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AWS_REGION: us-east-1
-  TERRAFORM_ACTION: destroy
+  TERRAFORM_ACTION: apply
   GITHUB_USERNAME: iykeori
   REPOSITORY_NAME: application-codes
   WEB_FILE_ZIP: rentzone.zip
@@ -130,6 +130,18 @@ jobs:
             echo "runner-running=false" >> $GITHUB_ENV
           fi
 
+        # Get Amazon Linux 2 AMI ID dynamically
+      - name: Get latest Amazon Linux 2 AMI ID
+        id: get_ami
+        run: |
+          AMI_ID=$(aws ec2 describe-images \
+            --owners amazon \
+            --filters "Name=name,Values=amzn2-ami-hvm-*-x86_64-gp2" \
+            --query 'Images | sort_by(@, &CreationDate)[-1].ImageId' \
+            --region us-east-1 \
+            --output text)
+          echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
+
       - name: Start EC2 runner
         if: env.runner-running != 'true'
         id: start-ec2-runner
@@ -137,7 +149,7 @@ jobs:
         with:
           mode: start
           github-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          ec2-image-id: ami-0a91cd140a1fc148a
+          ec2-image-id: ${{ env.AMI_ID }}
           ec2-instance-type: t3.micro
           subnet-id: ${{ needs.deploy_aws_infrastructure.outputs.private_data_subnet_az1_id }}
           security-group-id: ${{ needs.deploy_aws_infrastructure.outputs.runner_security_group_id }}
