@@ -79,6 +79,11 @@ resource "aws_ecs_service" "ecs_service" {
   enable_ecs_managed_tags = false
   propagate_tags          = "SERVICE"
 
+  depends_on = [
+    aws_ecs_task_definition.ecs_task_definition,
+    aws_lb_listener.alb_http_listener
+  ]
+
   # vpc and security groups
   network_configuration {
     subnets          = [aws_subnet.private_app_subnet_az1.id, aws_subnet.private_app_subnet_az2.id]

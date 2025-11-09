@@ -77,15 +77,15 @@ variable "publicly_accessible" {
 }
 
 # acm variables
-variable "domain_name" {
-  description = "domain name"
-  type        = string
-}
+# variable "domain_name" {
+#   description = "domain name"
+#   type        = string
+# }
 
-variable "alternative_names" {
-  description = "sub domain name"
-  type        = string
-}
+# variable "alternative_names" {
+#   description = "sub domain name"
+#   type        = string
+# }
 
 # s3 variables
 variable "env_file_bucket_name" {
@@ -115,11 +115,11 @@ variable "image_tag" {
 }
 
 # route-53 variables
-variable "record_name" {
-  description = "sub domain name"
-  type        = string
-}
-variable "zone_id" {
-  description = "Route 53 hosted zone ID (use this if multiple zones exist)"
-  type        = string
-}
+# variable "record_name" {
+#   description = "sub domain name"
+#   type        = string
+# }
+# variable "zone_id" {
+#   description = "Route 53 hosted zone ID (use this if multiple zones exist)"
+#   type        = string
+# }
