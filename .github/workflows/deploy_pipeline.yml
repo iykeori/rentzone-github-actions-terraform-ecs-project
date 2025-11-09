@@ -218,7 +218,7 @@ env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AWS_REGION: us-east-1
-  TERRAFORM_ACTION: apply
+  TERRAFORM_ACTION: destroy
   GITHUB_USERNAME: iykeori
   REPOSITORY_NAME: application-codes
   WEB_FILE_ZIP: rentzone.zip
@@ -229,10 +229,12 @@ jobs:
     name: Configure AWS credentials
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-node@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
         with:
           node-version: "16"
-      - uses: aws-actions/configure-aws-credentials@v1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
@@ -244,7 +246,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: hashicorp/setup-terraform@v3
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.1.7
       - name: Terraform init
@@ -335,7 +338,7 @@ jobs:
               {"Key": "Name", "Value": "ec2-github-runner"},
               {"Key": "GitHubRepository", "Value": "${{ github.repository }}"}
             ]
-          pre-runner-script: |
+          user-data: |
             #!/bin/bash
             yum update -y
             yum install -y git jq wget curl tar gzip docker
@@ -344,6 +347,20 @@ jobs:
             usermod -aG docker ec2-user
             curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
             yum install -y nodejs
+            RUNNER_HOME=/home/ec2-user/actions-runner
+            mkdir -p $RUNNER_HOME
+            chown ec2-user:ec2-user $RUNNER_HOME
+            cd $RUNNER_HOME
+            RUNNER_VERSION=$(curl -s https://api.github.com/repos/actions/runner/releases/latest | jq -r .tag_name)
+            curl -o actions-runner-linux-x64.tar.gz -L https://github.com/actions/runner/releases/download/${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION#v}.tar.gz
+            tar xzf actions-runner-linux-x64.tar.gz
+            chown -R ec2-user:ec2-user $RUNNER_HOME
+            RUNNER_TOKEN=$(curl -s -X POST -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN }}" \
+              -H "Accept: application/vnd.github+json" \
+              https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runners/registration-token | jq -r .token)
+            sudo -u ec2-user ./config.sh --url https://github.com/${GITHUB_REPOSITORY} --token $RUNNER_TOKEN --unattended --ephemeral
+            sudo ./svc.sh install ec2-user
+            sudo ./svc.sh start
 
   build_and_push_image:
     name: Build and push Docker image to ECR
