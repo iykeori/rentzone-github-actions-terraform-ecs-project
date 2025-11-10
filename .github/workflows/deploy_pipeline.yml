@@ -8,7 +8,7 @@ env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AWS_REGION: us-east-1
-  TERRAFORM_ACTION: destroy
+  TERRAFORM_ACTION: apply
   GITHUB_USERNAME: iykeori
   REPOSITORY_NAME: application-codes
   WEB_FILE_ZIP: rentzone.zip
@@ -142,12 +142,23 @@ jobs:
       #       --output text)
       #     echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
 
-      - name: Get latest Amazon Linux 2023 AMI ID
+      # - name: Get latest Amazon Linux 2023 AMI ID
+      #   id: get_ami
+      #   run: |
+      #     AMI_ID=$(aws ec2 describe-images \
+      #       --owners amazon \
+      #       --filters "Name=name,Values=al2023-ami-*-x86_64" \
+      #       --query 'Images | sort_by(@, &CreationDate)[-1].ImageId' \
+      #       --region us-east-1 \
+      #       --output text)
+      #     echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
+
+      - name: Get latest Ubuntu 22.04 LTS AMI ID
         id: get_ami
         run: |
           AMI_ID=$(aws ec2 describe-images \
-            --owners amazon \
-            --filters "Name=name,Values=al2023-ami-*-x86_64" \
+            --owners 099720109477 \
+            --filters "Name=name,Values=ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*" \
             --query 'Images | sort_by(@, &CreationDate)[-1].ImageId' \
             --region us-east-1 \
             --output text)
@@ -164,7 +175,6 @@ jobs:
           ec2-instance-type: t3.micro
           subnet-id: ${{ needs.deploy_aws_infrastructure.outputs.private_data_subnet_az1_id }}
           security-group-id: ${{ needs.deploy_aws_infrastructure.outputs.runner_security_group_id }}
-          registration-timeout: 600
           aws-resource-tags: >
             [
               {"Key": "Name", "Value": "ec2-github-runner"},
