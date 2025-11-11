@@ -322,7 +322,7 @@ jobs:
         run: |
           if [ "${{ needs.deploy_aws_infrastructure.outputs.terraform_action }}" = "destroy" ]; then
             # Use GitHub secret for destroy
-            echo "IMAGE_NAME=${{ secrets.ECR_REPOSITORY_NAME }}" >> $GITHUB_ENV
+            echo "IMAGE_NAME=${{ secrets.image_name }}" >> $GITHUB_ENV
           else
             # Use Terraform output for create/apply
             echo "IMAGE_NAME=${{ needs.deploy_aws_infrastructure.outputs.image_name }}" >> $GITHUB_ENV
@@ -343,8 +343,8 @@ jobs:
             exit 1
           fi
 
-          # Check if ECR repository exists
-          aws ecr describe-repositories --repository-names "$IMAGE_NAME" >/dev/null 2>&1
+          # Check if ECR repository exists (suppress failure)
+          aws ecr describe-repositories --repository-names "$IMAGE_NAME" >/dev/null 2>&1 || true
           REPO_EXISTS=$?
 
           if [ "$TERRAFORM_ACTION" = "destroy" ]; then
