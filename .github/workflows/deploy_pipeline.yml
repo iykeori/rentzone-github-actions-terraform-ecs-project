@@ -395,7 +395,7 @@ jobs:
           github-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           ec2-image-id: ${{ env.AMI_ID }}
           ec2-instance-type: t3.medium
-          ec2-root-volume-size: 30
+          ec2-root-volume-size: 80
           subnet-id: ${{ needs.deploy_aws_infrastructure.outputs.private_data_subnet_az1_id }}
           security-group-id: ${{ needs.deploy_aws_infrastructure.outputs.runner_security_group_id }}
           pre-runner-script: |
