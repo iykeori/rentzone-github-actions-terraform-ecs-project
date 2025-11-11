@@ -236,6 +236,7 @@ env:
   REPOSITORY_NAME: application-codes
   WEB_FILE_ZIP: rentzone.zip
   WEB_FILE_UNZIP: rentzone
+  ECR_REPOSITORY_NAME: my-ecr-repo # fallback for destroy
 
 jobs:
   # ---------------------------------------------------
@@ -293,8 +294,6 @@ jobs:
           echo "ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name)" >> $GITHUB_ENV
           echo "ENV_FILE_BUCKET_NAME=$(terraform output -raw env_file_bucket_name)" >> $GITHUB_ENV
 
-      - run: cat $GITHUB_ENV
-
     outputs:
       terraform_action: ${{ env.TERRAFORM_ACTION }}
       image_name: ${{ env.IMAGE_NAME }}
@@ -308,31 +307,8 @@ jobs:
       env_file_bucket_name: ${{ env.ENV_FILE_BUCKET_NAME }}
 
   # ---------------------------------------------------
-  # 3️⃣ Create ECR repository if not exists
+  # 3️⃣ Manage ECR repository (create on apply, delete on destroy)
   # ---------------------------------------------------
-  # create_ecr_repository:
-  #   name: Create ECR repository
-  #   needs:
-  #     - configure_aws_credentials
-  #     - deploy_aws_infrastructure
-  #   if: needs.deploy_aws_infrastructure.outputs.terraform_action != 'destroy'
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-
-  #     - name: Check ECR repository
-  #       env:
-  #         IMAGE_NAME: ${{ needs.deploy_aws_infrastructure.outputs.image_name }}
-  #       run: |
-  #         result=$(aws ecr describe-repositories --repository-names "${{ env.IMAGE_NAME }}" | jq -r '.repositories[0].repositoryName')
-  #         echo "repo_name=$result" >> $GITHUB_ENV
-  #       continue-on-error: true
-  #     - name: Create ECR repository if missing
-  #       env:
-  #         IMAGE_NAME: ${{ needs.deploy_aws_infrastructure.outputs.image_name }}
-  #       if: env.repo_name != env.IMAGE_NAME
-  #       run: aws ecr create-repository --repository-name ${{ env.IMAGE_NAME }}
-
   manage_ecr_repository:
     name: Manage ECR repository
     needs:
@@ -346,7 +322,7 @@ jobs:
         run: |
           if [ "${{ needs.deploy_aws_infrastructure.outputs.terraform_action }}" = "destroy" ]; then
             # Use GitHub secret for destroy
-            echo "IMAGE_NAME=${{ secrets.ECR_REPOSITORY_NAME }}" >> $GITHUB_ENV
+            echo "IMAGE_NAME=${{ env.ECR_REPOSITORY_NAME }}" >> $GITHUB_ENV
           else
             # Use Terraform output for create/apply
             echo "IMAGE_NAME=${{ needs.deploy_aws_infrastructure.outputs.image_name }}" >> $GITHUB_ENV
@@ -357,7 +333,6 @@ jobs:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           TERRAFORM_ACTION: ${{ needs.deploy_aws_infrastructure.outputs.terraform_action }}
         run: |
-          # Guard for empty IMAGE_NAME
           if [ -z "$IMAGE_NAME" ]; then
             echo "ERROR: IMAGE_NAME is empty. Exiting."
             exit 1
@@ -367,7 +342,6 @@ jobs:
           aws ecr describe-repositories --repository-names "$IMAGE_NAME" >/dev/null 2>&1
           REPO_EXISTS=$?
 
-          # Handle create or destroy
           if [ "$TERRAFORM_ACTION" = "destroy" ]; then
             if [ $REPO_EXISTS -eq 0 ]; then
               aws ecr delete-repository --repository-name "$IMAGE_NAME" --force
@@ -385,13 +359,14 @@ jobs:
           fi
 
   # ---------------------------------------------------
-  # 4️⃣ Start self-hosted EC2 runner (Ubuntu + Docker)
+  # 4️⃣ Start self-hosted EC2 runner
   # ---------------------------------------------------
   start_runner:
     name: Start self-hosted EC2 runner
     needs:
       - configure_aws_credentials
       - deploy_aws_infrastructure
+      - manage_ecr_repository
     if: needs.deploy_aws_infrastructure.outputs.terraform_action != 'destroy'
     runs-on: ubuntu-latest
     steps:
@@ -456,19 +431,16 @@ jobs:
 
   # ---------------------------------------------------
   # 5️⃣ Build & push Docker image to ECR
-  # ----------------------------------------------------
+  # ---------------------------------------------------
   build_and_push_image:
     name: Build and push Docker image
     needs:
-      - configure_aws_credentials
-      - deploy_aws_infrastructure
-      - create_ecr_repository
       - start_runner
+      - manage_ecr_repository
     if: needs.deploy_aws_infrastructure.outputs.terraform_action != 'destroy'
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v2
-
       - uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build Docker image
@@ -495,13 +467,14 @@ jobs:
           docker push ${{ secrets.ECR_REGISTRY }}/${{ env.IMAGE_NAME }}
 
   # ---------------------------------------------------
-  # 6️⃣ Stop EC2 runner (cleanup to save cost)
+  # 6️⃣ Stop EC2 runner (cleanup)
   # ---------------------------------------------------
   stop_runner:
-    name: Stop EC2 runner (cleanup)
-    needs: [build_and_push_image, start_runner]
-    runs-on: ubuntu-latest
+    name: Stop EC2 runner
+    needs:
+      - start_runner
     if: needs.deploy_aws_infrastructure.outputs.terraform_action == 'destroy'
+    runs-on: ubuntu-latest
     steps:
       - name: Stop EC2 runner
         uses: machulav/ec2-github-runner@v2
