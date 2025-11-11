@@ -322,17 +322,22 @@ jobs:
         run: |
           if [ "${{ needs.deploy_aws_infrastructure.outputs.terraform_action }}" = "destroy" ]; then
             # Use GitHub secret for destroy
-            echo "IMAGE_NAME=${{ env.ECR_REPOSITORY_NAME }}" >> $GITHUB_ENV
+            echo "IMAGE_NAME=${{ secrets.ECR_REPOSITORY_NAME }}" >> $GITHUB_ENV
           else
             # Use Terraform output for create/apply
             echo "IMAGE_NAME=${{ needs.deploy_aws_infrastructure.outputs.image_name }}" >> $GITHUB_ENV
           fi
 
-      - name: Manage ECR repository
+      - name: Create or Delete ECR repository
         env:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           TERRAFORM_ACTION: ${{ needs.deploy_aws_infrastructure.outputs.terraform_action }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+        shell: bash
         run: |
+          # Guard for empty IMAGE_NAME
           if [ -z "$IMAGE_NAME" ]; then
             echo "ERROR: IMAGE_NAME is empty. Exiting."
             exit 1
