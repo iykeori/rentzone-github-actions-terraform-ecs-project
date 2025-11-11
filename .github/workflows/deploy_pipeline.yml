@@ -437,13 +437,17 @@ jobs:
           pre-runner-script: |
             #!/bin/bash
             set -e
-            echo "Expanding root volume..."
-            sudo growpart /dev/xvda 1 || true
-            sudo resize2fs /dev/xvda1 || true
+            echo "Updating system and installing dependencies..."
+            sudo apt-get update -y
+            sudo apt-get install -y cloud-guest-utils gdisk ca-certificates curl gnupg lsb-release
+
+            echo "Expanding root volume to use full disk..."
+            sudo growpart /dev/xvda 1
+            sudo resize2fs /dev/xvda1
+            echo "Disk space after expansion:"
+            df -h /
 
             echo "Installing Docker..."
-            sudo apt-get update -y
-            sudo apt-get install -y ca-certificates curl gnupg lsb-release cloud-guest-utils
             sudo mkdir -p /etc/apt/keyrings
             curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
             echo \
@@ -454,8 +458,10 @@ jobs:
             sudo usermod -aG docker ubuntu
             sudo systemctl enable docker
             sudo systemctl start docker
-            echo "Disk space after resize and setup:"
+
+            echo "Disk space after Docker setup:"
             df -h
+
           aws-resource-tags: >
             [
               {"Key": "Name", "Value": "ec2-github-runner"},
