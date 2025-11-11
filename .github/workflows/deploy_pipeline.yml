@@ -450,17 +450,21 @@ jobs:
 
       - name: Build Docker image
         env:
-          RDS_ENDPOINT: ${{ needs.deploy_aws_infrastructure.outputs.rds_endpoint }}
           IMAGE_NAME: ${{ needs.deploy_aws_infrastructure.outputs.image_name }}
           IMAGE_TAG: ${{ needs.deploy_aws_infrastructure.outputs.image_tag }}
         run: |
+          if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
+            echo "ERROR: IMAGE_NAME or IMAGE_TAG is empty. Exiting."
+            exit 1
+          fi
+
           docker build \
             --build-arg PERSONAL_ACCESS_TOKEN=${{ secrets.PERSONAL_ACCESS_TOKEN }} \
             --build-arg GITHUB_USERNAME=${{ env.GITHUB_USERNAME }} \
             --build-arg REPOSITORY_NAME=${{ env.REPOSITORY_NAME }} \
             --build-arg WEB_FILE_ZIP=${{ env.WEB_FILE_ZIP }} \
             --build-arg WEB_FILE_UNZIP=${{ env.WEB_FILE_UNZIP }} \
-            -t ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} .
+            -t $IMAGE_NAME:$IMAGE_TAG .
 
       - name: Tag and Push Docker image to ECR
         env:
