@@ -8,7 +8,7 @@ env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AWS_REGION: us-east-1
-  TERRAFORM_ACTION: destroy
+  TERRAFORM_ACTION: apply
   GITHUB_USERNAME: iykeori
   REPOSITORY_NAME: application-codes
   WEB_FILE_ZIP: rentzone.zip
@@ -148,7 +148,8 @@ jobs:
           mode: start
           github-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           ec2-image-id: ${{ env.AMI_ID }}
-          ec2-instance-type: t3.micro
+          ec2-instance-type: t3.small # Upgrade from t3.micro
+          ec2-root-volume-size: 30 # CRITICAL: Increase from default 8GB
           subnet-id: ${{ needs.deploy_aws_infrastructure.outputs.private_data_subnet_az1_id }}
           security-group-id: ${{ needs.deploy_aws_infrastructure.outputs.runner_security_group_id }}
           pre-runner-script: |
@@ -222,17 +223,17 @@ jobs:
           docker push ${{ secrets.ECR_REGISTRY }}/${{ env.IMAGE_NAME }}
 
   # Stop self-hosted EC2 runner
-  stop_runner:
-    name: Stop EC2 runner
-    needs:
-      - start_runner
-    if: needs.deploy_aws_infrastructure.outputs.terraform_action == 'destroy'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Stop EC2 runner
-        uses: machulav/ec2-github-runner@v2
-        with:
-          mode: stop
-          github-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          label: ${{ needs.start_runner.outputs.label }}
-          ec2-instance-id: ${{ needs.start_runner.outputs.ec2-instance-id }}
+  # stop_runner:
+  #   name: Stop EC2 runner
+  #   needs:
+  #     - start_runner
+  #   if: needs.deploy_aws_infrastructure.outputs.terraform_action == 'destroy'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Stop EC2 runner
+  #       uses: machulav/ec2-github-runner@v2
+  #       with:
+  #         mode: stop
+  #         github-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+  #         label: ${{ needs.start_runner.outputs.label }}
+  #         ec2-instance-id: ${{ needs.start_runner.outputs.ec2-instance-id }}
