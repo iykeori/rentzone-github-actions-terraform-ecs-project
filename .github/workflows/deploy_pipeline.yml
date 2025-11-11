@@ -280,12 +280,11 @@ jobs:
 
       - name: Get Terraform outputs
         if: env.TERRAFORM_ACTION == 'apply'
-        id: terraform_outputs
         working-directory: ./iac
         run: |
           echo "IMAGE_NAME=$(terraform output -raw image_name)" >> $GITHUB_ENV
-          echo "RDS_ENDPOINT=$(terraform output -raw rds_endpoint)" >> $GITHUB_ENV
           echo "IMAGE_TAG=$(terraform output -raw image_tag)" >> $GITHUB_ENV
+          echo "RDS_ENDPOINT=$(terraform output -raw rds_endpoint)" >> $GITHUB_ENV
           echo "PRIVATE_DATA_SUBNET_AZ1_ID=$(terraform output -raw private_data_subnet_az1_id)" >> $GITHUB_ENV
           echo "RUNNER_SECURITY_GROUP_ID=$(terraform output -raw runner_security_group_id)" >> $GITHUB_ENV
           echo "TASK_DEFINITION_NAME=$(terraform output -raw task_definition_name)" >> $GITHUB_ENV
@@ -296,8 +295,8 @@ jobs:
     outputs:
       terraform_action: ${{ env.TERRAFORM_ACTION }}
       image_name: ${{ env.IMAGE_NAME }}
-      rds_endpoint: ${{ env.RDS_ENDPOINT }}
       image_tag: ${{ env.IMAGE_TAG }}
+      rds_endpoint: ${{ env.RDS_ENDPOINT }}
       private_data_subnet_az1_id: ${{ env.PRIVATE_DATA_SUBNET_AZ1_ID }}
       runner_security_group_id: ${{ env.RUNNER_SECURITY_GROUP_ID }}
       task_definition_name: ${{ env.TASK_DEFINITION_NAME }}
@@ -306,7 +305,7 @@ jobs:
       env_file_bucket_name: ${{ env.ENV_FILE_BUCKET_NAME }}
 
   # ---------------------------------------------------
-  # Manage ECR repository (create on apply, delete on destroy)
+  # 3️⃣ Manage ECR repository
   # ---------------------------------------------------
   manage_ecr_repository:
     name: Manage ECR repository
@@ -321,7 +320,7 @@ jobs:
         run: |
           if [ "${{ needs.deploy_aws_infrastructure.outputs.terraform_action }}" = "destroy" ]; then
             # On destroy, use fixed secret values
-            echo "IMAGE_NAME=${{ secrets.ECR_REPOSITORY_NAME }}" >> $GITHUB_ENV
+            echo "IMAGE_NAME=${{ secrets.image_name }}" >> $GITHUB_ENV
             echo "IMAGE_TAG=latest" >> $GITHUB_ENV
           else
             # On apply, use Terraform outputs
@@ -343,10 +342,8 @@ jobs:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           TERRAFORM_ACTION: ${{ needs.deploy_aws_infrastructure.outputs.terraform_action }}
         run: |
-          # Check if ECR repository exists
           aws ecr describe-repositories --repository-names "$IMAGE_NAME" >/dev/null 2>&1
           REPO_EXISTS=$?
-
           if [ "$TERRAFORM_ACTION" = "destroy" ]; then
             if [ $REPO_EXISTS -eq 0 ]; then
               echo "Deleting ECR repository: $IMAGE_NAME"
@@ -366,7 +363,34 @@ jobs:
           fi
 
   # ---------------------------------------------------
-  # Build & push Docker image
+  # 4️⃣ Start self-hosted EC2 runner
+  # ---------------------------------------------------
+  start_runner:
+    name: Start EC2 runner
+    needs:
+      - configure_aws_credentials
+      - deploy_aws_infrastructure
+    if: needs.deploy_aws_infrastructure.outputs.terraform_action != 'destroy'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start EC2 runner
+        uses: machulav/ec2-github-runner@v2
+        with:
+          mode: start
+          github-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          ec2-image-id: ami-12345678
+          ec2-instance-type: t3.small
+          aws-resource-tags: >
+            [
+              {"Key": "Name", "Value": "ec2-github-runner"},
+              {"Key": "GitHubRepository", "Value": "${{ github.repository }}"}
+            ]
+    outputs:
+      label: ${{ steps.start-ec2-runner.outputs.label }}
+      ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
+
+  # ---------------------------------------------------
+  # 5️⃣ Build & push Docker image
   # ---------------------------------------------------
   build_and_push_image:
     name: Build and push Docker image
