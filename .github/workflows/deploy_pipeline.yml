@@ -310,23 +310,63 @@ jobs:
   # ---------------------------------------------------
   # 3️⃣ Create ECR repository if not exists
   # ---------------------------------------------------
+  # create_ecr_repository:
+  #   name: Create ECR repository
+  #   needs:
+  #     - configure_aws_credentials
+  #     - deploy_aws_infrastructure
+  #   if: needs.deploy_aws_infrastructure.outputs.terraform_action != 'destroy'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+
+  #     - name: Check ECR repository
+  #       env:
+  #         IMAGE_NAME: ${{ needs.deploy_aws_infrastructure.outputs.image_name }}
+  #       run: |
+  #         result=$(aws ecr describe-repositories --repository-names "${{ env.IMAGE_NAME }}" | jq -r '.repositories[0].repositoryName')
+  #         echo "repo_name=$result" >> $GITHUB_ENV
+  #       continue-on-error: true
+
   create_ecr_repository:
-    name: Create ECR repository
+    name: Manage ECR repository
     needs:
       - configure_aws_credentials
       - deploy_aws_infrastructure
-    if: needs.deploy_aws_infrastructure.outputs.terraform_action != 'destroy'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
-      - name: Check ECR repository
+      - name: Set ECR repository name
         env:
           IMAGE_NAME: ${{ needs.deploy_aws_infrastructure.outputs.image_name }}
         run: |
-          result=$(aws ecr describe-repositories --repository-names "${{ env.IMAGE_NAME }}" | jq -r '.repositories[0].repositoryName')
-          echo "repo_name=$result" >> $GITHUB_ENV
-        continue-on-error: true
+          echo "REPO_NAME=${IMAGE_NAME}" >> $GITHUB_ENV
+
+      - name: Manage ECR repository
+        env:
+          IMAGE_NAME: ${{ env.REPO_NAME }}
+          TERRAFORM_ACTION: ${{ needs.deploy_aws_infrastructure.outputs.terraform_action }}
+        run: |
+          if [ "$TERRAFORM_ACTION" = "destroy" ]; then
+            echo "Destroying ECR repository if it exists..."
+            aws ecr describe-repositories --repository-names "$IMAGE_NAME" >/dev/null 2>&1
+            if [ $? -eq 0 ]; then
+              aws ecr delete-repository --repository-name "$IMAGE_NAME" --force
+              echo "ECR repository $IMAGE_NAME deleted."
+            else
+              echo "ECR repository $IMAGE_NAME does not exist, skipping deletion."
+            fi
+          else
+            echo "Creating ECR repository if it does not exist..."
+            aws ecr describe-repositories --repository-names "$IMAGE_NAME" >/dev/null 2>&1
+            if [ $? -ne 0 ]; then
+              aws ecr create-repository --repository-name "$IMAGE_NAME"
+              echo "ECR repository $IMAGE_NAME created."
+            else
+              echo "ECR repository $IMAGE_NAME already exists, skipping creation."
+            fi
+          fi
 
       - name: Create ECR repository if missing
         env:
@@ -451,7 +491,7 @@ jobs:
     name: Stop EC2 runner (cleanup)
     needs: [build_and_push_image, start_runner]
     runs-on: ubuntu-latest
-    if: always()
+    if: needs.deploy_aws_infrastructure.outputs.terraform_action == 'destroy'
     steps:
       - name: Stop EC2 runner
         uses: machulav/ec2-github-runner@v2
