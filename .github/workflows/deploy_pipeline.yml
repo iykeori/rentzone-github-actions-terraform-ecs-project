@@ -386,6 +386,42 @@ jobs:
             --output text)
           echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
 
+      # - name: Start EC2 runner
+      #   if: env.runner-running != 'true'
+      #   id: start-ec2-runner
+      #   uses: machulav/ec2-github-runner@v2
+      #   with:
+      #     mode: start
+      #     github-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      #     ec2-image-id: ${{ env.AMI_ID }}
+      #     ec2-instance-type: t3.medium
+      #     ec2-root-volume-size: 80
+      #     subnet-id: ${{ needs.deploy_aws_infrastructure.outputs.private_data_subnet_az1_id }}
+      #     security-group-id: ${{ needs.deploy_aws_infrastructure.outputs.runner_security_group_id }}
+      #     pre-runner-script: |
+      #       #!/bin/bash
+      #       set -e
+      #       echo "Installing Docker..."
+      #       sudo apt-get update -y
+      #       sudo apt-get install -y ca-certificates curl gnupg lsb-release
+      #       sudo mkdir -p /etc/apt/keyrings
+      #       curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+      #       echo \
+      #         "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+      #         $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+      #       sudo apt-get update -y
+      #       sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+      #       sudo usermod -aG docker ubuntu
+      #       sudo systemctl enable docker
+      #       sudo systemctl start docker
+      #       echo "Disk space after setup:"
+      #       df -h
+      #     aws-resource-tags: >
+      #       [
+      #         {"Key": "Name", "Value": "ec2-github-runner"},
+      #         {"Key": "GitHubRepository", "Value": "${{ github.repository }}"}
+      #       ]
+
       - name: Start EC2 runner
         if: env.runner-running != 'true'
         id: start-ec2-runner
@@ -401,9 +437,13 @@ jobs:
           pre-runner-script: |
             #!/bin/bash
             set -e
+            echo "Expanding root volume..."
+            sudo growpart /dev/xvda 1 || true
+            sudo resize2fs /dev/xvda1 || true
+
             echo "Installing Docker..."
             sudo apt-get update -y
-            sudo apt-get install -y ca-certificates curl gnupg lsb-release
+            sudo apt-get install -y ca-certificates curl gnupg lsb-release cloud-guest-utils
             sudo mkdir -p /etc/apt/keyrings
             curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
             echo \
@@ -414,7 +454,7 @@ jobs:
             sudo usermod -aG docker ubuntu
             sudo systemctl enable docker
             sudo systemctl start docker
-            echo "Disk space after setup:"
+            echo "Disk space after resize and setup:"
             df -h
           aws-resource-tags: >
             [
