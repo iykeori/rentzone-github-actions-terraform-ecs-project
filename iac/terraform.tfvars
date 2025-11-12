@@ -22,8 +22,8 @@ database_instance_class      = "db.t3.micro"
 publicly_accessible          = false
 
 # acm variables
-# domain_name       = "iykeori.com"
-# alternative_names = "*.iykeori.com"
+domain_name       = "iykeori.com"
+alternative_names = "*.iykeori.com"
 
 # s3 variables
 env_file_bucket_name = "ik-rentzone-app-env-file-bucket"
@@ -36,6 +36,6 @@ image_name   = "rentzone-app"
 image_tag    = "latest"
 
 # route-53 variables
-# record_name = "www"
-# zone_id     = "Z0826024TBJAUY69LCSX"
+record_name = "www"
+zone_id     = "Z02329422GGU9KJNSS4BM"
 
