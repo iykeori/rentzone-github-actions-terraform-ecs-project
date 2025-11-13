@@ -1,21 +1,36 @@
 # Use the latest version of the Amazon Linux base image
 FROM amazonlinux:2
 
-# Update all installed packages
-RUN yum update -y && yum clean all && rm -rf /var/cache/yum
+# Update all installed packages to thier latest versions
+RUN yum update -y 
 
-# Install utilities
-RUN yum install -y unzip wget git httpd \
-    && yum clean all && rm -rf /var/cache/yum
+# Install the unzip package, which we will use it to extract the web files from the zip folder
+RUN yum install unzip -y
 
-# Install PHP and extensions
+# Install wget package, which we will use it to download files from the internet 
+RUN yum install -y wget
+
+# Install Apache
+RUN yum install -y httpd
+
+# Install PHP and various extensions
 RUN amazon-linux-extras enable php7.4 && \
-    yum clean metadata && \
-    yum install -y \
-      php php-common php-pear php-cgi php-curl php-mbstring \
-      php-gd php-mysqlnd php-gettext php-json php-xml php-fpm \
-      php-intl php-zip \
-    && yum clean all && rm -rf /var/cache/yum
+  yum clean metadata && \
+  yum install -y \
+    php \
+    php-common \
+    php-pear \
+    php-cgi \
+    php-curl \
+    php-mbstring \
+    php-gd \
+    php-mysqlnd \
+    php-gettext \
+    php-json \
+    php-xml \
+    php-fpm \
+    php-intl \
+    php-zip
 
 # Download the MySQL repository package
 RUN wget https://repo.mysql.com/mysql80-community-release-el7-3.noarch.rpm
@@ -23,17 +38,17 @@ RUN wget https://repo.mysql.com/mysql80-community-release-el7-3.noarch.rpm
 # Import the GPG key for the MySQL repository
 RUN rpm --import https://repo.mysql.com/RPM-GPG-KEY-mysql-2023
 
-# Install the MySQL repository package and clean up
-RUN yum localinstall -y mysql80-community-release-el7-3.noarch.rpm \
-    && rm -f mysql80-community-release-el7-3.noarch.rpm \
-    && yum clean all && rm -rf /var/cache/yum
+# Install the MySQL repository package
+RUN yum localinstall mysql80-community-release-el7-3.noarch.rpm -y
 
-# Install the MySQL community server package and clean up
-RUN yum install -y mysql-community-server \
-    && yum clean all && rm -rf /var/cache/yum
+# Install the MySQL community server package
+RUN yum install mysql-community-server -y
 
 # Change directory to the html directory
 WORKDIR /var/www/html
+
+# Install Git
+RUN yum install -y git
 
 # Set the build argument directive
 ARG PERSONAL_ACCESS_TOKEN
@@ -47,7 +62,7 @@ ARG RDS_DB_NAME
 ARG RDS_DB_USERNAME
 ARG RDS_DB_PASSWORD
 
-# Use the build argument to set environment variables
+# Use the build argument to set environment variables 
 ENV PERSONAL_ACCESS_TOKEN=$PERSONAL_ACCESS_TOKEN
 ENV GITHUB_USERNAME=$GITHUB_USERNAME
 ENV REPOSITORY_NAME=$REPOSITORY_NAME
@@ -80,19 +95,29 @@ RUN chmod -R 777 /var/www/html
 # Give full access to the storage directory
 RUN chmod -R 777 storage/
 
-# Update .env file
+# Use the sed command to search the .env file for a line that starts with APP_ENV= and replace everything after the = character
 RUN sed -i '/^APP_ENV=/ s/=.*$/=production/' .env
-RUN sed -i "/^APP_URL=/ s/=.*$/=https:\/\/$DOMAIN_NAME\//" .env
-RUN sed -i "/^DB_HOST=/ s/=.*$/=$RDS_ENDPOINT/" .env
-RUN sed -i "/^DB_DATABASE=/ s/=.*$/=$RDS_DB_NAME/" .env 
-RUN sed -i "/^DB_USERNAME=/ s/=.*$/=$RDS_DB_USERNAME/" .env
-RUN sed -i "/^DB_PASSWORD=/ s/=.*$/=$RDS_DB_PASSWORD/" .env
 
-# Copy the file, AppServiceProvider.php
+# Use the sed command to search the .env file for a line that starts with APP_URL= and replace everything after the = character
+RUN sed -i "/^APP_URL=/ s/=.*$/=https:\/\/$DOMAIN_NAME\//" .env
+
+# Use the sed command to search the .env file for a line that starts with DB_HOST= and replace everything after the = character
+RUN sed -i "/^DB_HOST=/ s/=.*$/=$RDS_ENDPOINT/" .env
+
+# Use the sed command to search the .env file for a line that starts with DB_DATABASE= and replace everything after the = character
+RUN sed -i "/^DB_DATABASE=/ s/=.*$/=$RDS_DB_NAME/" .env 
+
+# Use the sed command to search the .env file for a line that starts with DB_USERNAME= and replace everything after the = character
+RUN  sed -i "/^DB_USERNAME=/ s/=.*$/=$RDS_DB_USERNAME/" .env
+
+# Use the sed command to search the .env file for a line that starts with DB_PASSWORD= and replace everything after the = character
+RUN  sed -i "/^DB_PASSWORD=/ s/=.*$/=$RDS_DB_PASSWORD/" .env
+
+# Copy the file, AppServiceProvider.php from the host file system into the container at the path app/Providers/AppServiceProvider.php
 COPY AppServiceProvider.php app/Providers/AppServiceProvider.php
 
-# Expose Apache and MySQL ports
+# Expose the default Apache and MySQL ports
 EXPOSE 80 3306
 
-# Start Apache in foreground
+# Start Apache and MySQL
 ENTRYPOINT ["/usr/sbin/httpd", "-D", "FOREGROUND"]
