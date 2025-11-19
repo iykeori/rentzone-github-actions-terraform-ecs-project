@@ -33,49 +33,49 @@ resource "aws_lb_target_group" "alb_target_group" {
 }
 
 # create a listener on port 80 with redirect action
-# resource "aws_lb_listener" "alb_http_listener" {
-#   load_balancer_arn = aws_lb.application_load_balancer.arn
-#   port              = 80
-#   protocol          = "HTTP"
-
-#   default_action {
-#     type = "redirect"
-
-#     redirect {
-#       port        = 443
-#       protocol    = "HTTPS"
-#       status_code = "HTTP_301"
-#     }
-#   }
-# }
-
-# create a listener on port 443 with forward action
-# resource "aws_lb_listener" "alb_https_listener" {
-#   load_balancer_arn = aws_lb.application_load_balancer.arn
-#   port              = 443
-#   protocol          = "HTTPS"
-#   ssl_policy        = "ELBSecurityPolicy-2016-08"
-#   certificate_arn   = aws_acm_certificate.acm_certificate.arn
-
-#   default_action {
-#     type             = "forward"
-#     target_group_arn = aws_lb_target_group.alb_target_group.arn
-#   }
-# }
-
-# --- HTTP Listener (works immediately) ---
 resource "aws_lb_listener" "alb_http_listener" {
   load_balancer_arn = aws_lb.application_load_balancer.arn
   port              = 80
   protocol          = "HTTP"
 
-  # Default action: forward traffic to target group
+  default_action {
+    type = "redirect"
+
+    redirect {
+      port        = 443
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+#create a listener on port 443 with forward action
+resource "aws_lb_listener" "alb_https_listener" {
+  load_balancer_arn = aws_lb.application_load_balancer.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = aws_acm_certificate.acm_certificate.arn
+
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.alb_target_group.arn
   }
-
-  tags = {
-    Name = "${var.project_name}-listener-http"
-  }
 }
+
+# --- HTTP Listener (works immediately) ---
+# resource "aws_lb_listener" "alb_http_listener" {
+#   load_balancer_arn = aws_lb.application_load_balancer.arn
+#   port              = 80
+#   protocol          = "HTTP"
+
+#   # Default action: forward traffic to target group
+#   default_action {
+#     type             = "forward"
+#     target_group_arn = aws_lb_target_group.alb_target_group.arn
+#   }
+
+#   tags = {
+#     Name = "${var.project_name}-listener-http"
+#   }
+# }
